@@ -5,6 +5,8 @@ from scipy.linalg import solve_banded
 import matplotlib.pyplot as plt
 import tomllib
 import scipy.constants as cnsts
+from scipy.optimize import brentq
+
 def Br(z):
     if (np.abs(z) < 1e-9):
         return 1.0
@@ -67,7 +69,7 @@ class SGTransistorDD:
         ND = NC*np.exp(-D/VT)
         ephi = 1
         en = 101
-        while(ephi > 1e-10 or en > 10):
+        while(ephi > 1e-10 or en > 100):
             for j in range(0,Nx):
                 for i in range(0,Ny):
                     if (j == 0):
@@ -106,7 +108,7 @@ class SGTransistorDD:
             
             ephi = np.sqrt(((self.__fphi*self.__fphi).sum())/(Nx*Ny))
             en = np.sqrt(((self.__fn*self.__fn).sum())/(Nx))
-            print(ephi,en)
+            #print(ephi,en)
         
         
     def get_current(self):
@@ -119,12 +121,37 @@ class SGTransistorDD:
         return np.mean(J)
 
 s = SGTransistorDD()
+s.apply_bias(1,0.8)
+#ID = s.get_current()
+
+def solveBias(VD, IDD, VG):
+    lhs = IDD
+    s.apply_bias(VG, VD)
+    rhs = -1.*s.get_current()
+    return (lhs-rhs)
+
+
+
+N = 31
+VG = 1.0 + 25e-3*np.sin(np.linspace(0,2*np.pi,N))
+VD = np.zeros(N)
+IDD = 100e-6 
+
+for i in range(0,N):
+    VD[i] = brentq(solveBias,0.6,1.0, args=(IDD, VG[i]))
+    print(VD[i])
+
+plt.plot(VG)
+plt.plot(VD)
+'''
 VG = 2.0
 VD = np.linspace(0,1.0,11)
 J = np.zeros(11)
-
-for i in range(0,11):
-    s.apply_bias(VG, VD[i])
-    J[i] = s.get_current()
-    print(f"============{i}=====================")
-plt.plot(VD, J)
+VGlist = [0,0.5,1.0]
+for VG in VGlist:
+    for i in range(0,11):
+        s.apply_bias(VG, VD[i])
+        J[i] = s.get_current()
+        print(f"============{i+1}=====================")
+    plt.plot(VD, -J*1e6,'*-')
+'''
