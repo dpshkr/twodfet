@@ -1,7 +1,8 @@
 import numpy as np
 from scipy.sparse import coo_array, csr_array
-from scipy.sparse.linalg import cg
+from scipy.sparse.linalg import cg, gmres
 import matplotlib.pyplot as plt
+import time
 
 class DoubleGateTwoDFET(object):
     def __init__(self,params):
@@ -243,7 +244,13 @@ class DoubleGateTwoDFET(object):
         print(x)
         '''
 
-    def __update_poisson_rhs(self,VGT, VBT, VD):
+    def __update_poisson_rhs_dd(self):
+        pass
+
+    def __update_poisson_rhs_ballistic(self):
+        pass
+
+    def __update_poisson_rhs_equilibrium(self):
         pass
 
     def __update_poisson_rhs_dirichlet(self,VGT,VGB,VD,VS):
@@ -301,10 +308,17 @@ class DoubleGateTwoDFET(object):
             self.__B[i*Nx+j]  = VD
             self.__B[i*Nx+j-1] -= -1.0*VD
 
-
+    ''''
     def solve_poisson(self, VGT, VGB, VD, VS = 0.0):
         self.__update_poisson_rhs_dirichlet(VGT,VGB,VD,VS)
-        (self.phi,error) = cg(self.__A,self.__B)
+        start_time = time.time()
+        for j in range(0,100):
+            (self.phi,error) = gmres(self.__A,self.__B)
+        print("--- %s seconds ---" % (time.time() - start_time))
+    '''
+
+    def apply_bias_equilibrium(self, VGT, VGB):
+        self.__update_poisson_rhs_dirichlet(VGT,VGB,0.0,0.0)
 
     def plot(self):
         plt.imshow(self.phi.reshape([self.__Ny,self.__Nx]))
@@ -314,4 +328,4 @@ class DoubleGateTwoDFET(object):
 params = {'device':{'L':10e-9, 'tins': 5e-9, 'tsd':2e-9}, 'sim':{'dx':0.1e-9}}
 d = DoubleGateTwoDFET(params)
 d.solve_poisson(-2,-2,1.0,-20.0)
-d.plot()
+#d.plot()
